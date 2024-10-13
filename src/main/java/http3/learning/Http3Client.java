@@ -57,12 +57,13 @@ public class Http3Client {
 					new Http3RequestStreamInboundHandler() {
 						@Override
 						protected void channelRead(ChannelHandlerContext ctx, Http3HeadersFrame frame) {
+							System.out.println("HEADERS = " + frame.headers());
 							ReferenceCountUtil.release(frame);
 						}
 
 						@Override
 						protected void channelRead(ChannelHandlerContext ctx, Http3DataFrame frame) {
-							System.err.print(frame.content().toString(CharsetUtil.US_ASCII));
+							System.err.print("DATA = " + frame.content().toString(CharsetUtil.US_ASCII));
 							ReferenceCountUtil.release(frame);
 						}
 
