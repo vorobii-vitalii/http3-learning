@@ -28,6 +28,8 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:2.1.0-alpha1'
     implementation 'ch.qos.logback:logback-classic:1.5.10'
 
+    implementation 'tech.kwik:kwik:0.8.13'
+
 
 }
 
