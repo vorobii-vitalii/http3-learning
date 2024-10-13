@@ -49,7 +49,7 @@ public class Http3Client {
 
 			QuicChannel quicChannel = QuicChannel.newBootstrap(channel)
 					.handler(new Http3ClientConnectionHandler())
-					.remoteAddress(new InetSocketAddress("learning.test", Http3Server.PORT))
+					.remoteAddress(new InetSocketAddress("localhost", 9999))
 					.connect()
 					.get();
 
@@ -76,7 +76,7 @@ public class Http3Client {
 			// After this its not possible anymore to write any more data.
 			Http3HeadersFrame frame = new DefaultHttp3HeadersFrame();
 			frame.headers().method("GET").path("/")
-					.authority("learning.test" + ":" + Http3Server.PORT)
+					.authority("localhost" + ":" + Http3Server.PORT)
 					.scheme("https");
 			streamChannel.writeAndFlush(frame)
 					.addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync();

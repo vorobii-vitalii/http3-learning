@@ -15,12 +15,12 @@ import net.luminis.quic.server.ServerConnector;
 public class KwikServerExample {
 
 	public static void main(String[] args) throws Exception {
-		File certChainFile = new File("/home/vitaliivorobii/fun/http3-learning/cert.jks");
-		File keyFile = new File("/home/vitaliivorobii/fun/http3-learning/key.pem");
+		File certChainFile = new File("/home/vitalii/projects/http3-learning/cert.jks");
+		File keyFile = new File("/home/vitalii/projects/http3-learning/key.pem");
 		final SysOutLogger log = new SysOutLogger();
 		log.logPackets(true);
 		final String keyStorePassword = "secret";
-		KeyStore keyStore = KeyStore.getInstance(new File("/home/vitaliivorobii/fun/http3-learning/cert.jks"), keyStorePassword.toCharArray());
+		KeyStore keyStore = KeyStore.getInstance(new File("/home/vitalii/projects/http3-learning/cert.jks"), keyStorePassword.toCharArray());
 
 		List<QuicConnection.QuicVersion> supportedVersions = new ArrayList<>();
 		supportedVersions.add(QuicConnection.QuicVersion.V1);
