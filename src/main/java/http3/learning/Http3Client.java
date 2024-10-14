@@ -79,16 +79,25 @@ public class Http3Client {
 			// Write the Header frame and send the FIN to mark the end of the request.
 			// After this it's not possible anymore to write any more data.
 			Http3HeadersFrame headersFrame = new DefaultHttp3HeadersFrame();
+			// GET
+
+//			headersFrame.headers()
+//					.method("GET")
+//					.path("/")
+//					.authority("localhost" + ":" + Http3Server.PORT)
+//					.scheme("https");
+//			streamChannel.writeAndFlush(headersFrame)
+//					.addListener(QuicStreamChannel.SHUTDOWN_OUTPUT)
+//					.sync();
+
+			// POST
+
 			headersFrame.headers()
 					.method("GET")
 					.path("/")
 					.authority("localhost" + ":" + Http3Server.PORT)
-					.scheme("https")
-					.addInt("content-length", content.length);
-
-//			streamChannel.writeAndFlush(headersFrame)
-//					.addListener(QuicStreamChannel.SHUTDOWN_OUTPUT)
-//					.sync();
+					.addInt("content-length", content.length)
+					.scheme("https");
 
 			streamChannel.write(headersFrame);
 			streamChannel.writeAndFlush(new DefaultHttp3DataFrame(Unpooled.copiedBuffer(content)))
