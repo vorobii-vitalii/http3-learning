@@ -12,8 +12,8 @@ import java.time.Duration;
 public class ReactiveHttp3Server {
 
 	public static void main(String[] args) {
-		File certChainFile = new File("/home/vitalii/projects/http3-learning/cert.pem");
-		File keyFile = new File("/home/vitalii/projects/http3-learning/key.pem");
+		File certChainFile = new File("cert.pem");
+		File keyFile = new File("key.pem");
 
 		Http3SslContextSpec serverCtx = Http3SslContextSpec.forServer(keyFile, null, certChainFile);
 

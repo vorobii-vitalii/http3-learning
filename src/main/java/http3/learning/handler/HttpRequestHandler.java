@@ -14,10 +14,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.HttpObject;
+import io.netty.handler.codec.http.FullHttpRequest;
 
 @ChannelHandler.Sharable
-public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 	private static final byte[] CONTENT = "Hey HTTP\r\n".getBytes(StandardCharsets.UTF_8);
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(HttpRequestHandler.class);
@@ -29,8 +29,9 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<HttpObject> 
 	}
 
 	@Override
-	protected void channelRead0(ChannelHandlerContext channelHandlerContext, HttpObject httpRequest) {
+	protected void channelRead0(ChannelHandlerContext channelHandlerContext, FullHttpRequest httpRequest) {
 		LOGGER.info("Handling request = {}", httpRequest);
+		LOGGER.info("Payload = {}", httpRequest.content().toString(StandardCharsets.UTF_8));
 		DefaultHttpResponse httpResponse = new DefaultFullHttpResponse(HTTP_1_1, OK, Unpooled.wrappedBuffer(CONTENT));
 		httpResponse.headers().add("X-Extra-Header", "Value");
 		channelHandlerContext.writeAndFlush(httpResponse);

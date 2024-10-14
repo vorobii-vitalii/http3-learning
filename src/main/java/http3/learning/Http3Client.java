@@ -32,88 +32,84 @@ public class Http3Client {
 		NioEventLoopGroup group = new NioEventLoopGroup(1);
 
 		try {
-			ChannelHandler codec = Http3.newQuicClientCodecBuilder()
-					.sslContext(QuicSslContextBuilder.forClient()
-							.trustManager(InsecureTrustManagerFactory.INSTANCE)
-							.applicationProtocols(Http3.supportedApplicationProtocols())
-							.build())
-					.maxIdleTimeout(5000, TimeUnit.MILLISECONDS)
-					.initialMaxData(10000000)
-					.initialMaxStreamDataBidirectionalLocal(1000000)
-					.build();
+			Channel channel = createHttp3Channel(group);
+			QuicChannel quicChannel = createQuicChannel(channel);
+			QuicStreamChannel streamChannel = createQuicStream(quicChannel);
 
-			Bootstrap bootstrap = new Bootstrap();
-			Channel channel = bootstrap.group(group)
-					.channel(NioDatagramChannel.class)
-					.handler(codec)
-					.bind(0).sync().channel();
-
-			QuicChannel quicChannel = QuicChannel.newBootstrap(channel)
-					.handler(new Http3ClientConnectionHandler())
-					.remoteAddress(new InetSocketAddress("localhost", 9999))
-					.connect()
-					.get();
-
-			QuicStreamChannel streamChannel = Http3.newRequestStream(quicChannel,
-					new Http3RequestStreamInboundHandler() {
-						@Override
-						protected void channelRead(ChannelHandlerContext ctx, Http3HeadersFrame frame) {
-							System.out.println("HEADERS = " + frame.headers());
-							ReferenceCountUtil.release(frame);
-						}
-
-						@Override
-						protected void channelRead(ChannelHandlerContext ctx, Http3DataFrame frame) {
-							System.out.print("DATA = " + frame.content().toString(CharsetUtil.US_ASCII));
-							ReferenceCountUtil.release(frame);
-						}
-
-						@Override
-						protected void channelInputClosed(ChannelHandlerContext ctx) {
-							ctx.close();
-						}
-					}).sync().getNow();
-
-			byte[] content = "Hey!".getBytes(StandardCharsets.UTF_8);
-
-			// Write the Header frame and send the FIN to mark the end of the request.
-			// After this it's not possible anymore to write any more data.
-			Http3HeadersFrame headersFrame = new DefaultHttp3HeadersFrame();
-			// GET
-
-//			headersFrame.headers()
-//					.method("GET")
-//					.path("/")
-//					.authority("localhost" + ":" + Http3Server.PORT)
-//					.scheme("https");
-//			streamChannel.writeAndFlush(headersFrame)
-//					.addListener(QuicStreamChannel.SHUTDOWN_OUTPUT)
-//					.sync();
-
-			// POST
-
-			headersFrame.headers()
-					.method("GET")
-					.path("/")
-					.authority("localhost" + ":" + Http3Server.PORT)
-					.addInt("content-length", content.length)
-					.scheme("https");
-
-			streamChannel.write(headersFrame);
-			streamChannel.writeAndFlush(new DefaultHttp3DataFrame(Unpooled.copiedBuffer(content)))
-					.addListener(QuicStreamChannel.SHUTDOWN_OUTPUT)
-					.sync();
-
-			// Wait for the stream channel and quic channel to be closed (this will happen after we received the FIN).
-			// After this is done we will close the underlying datagram channel.
+			sendHttpRequest(streamChannel);
 			streamChannel.closeFuture().sync();
-
-			// After we received the response lets also close the underlying QUIC channel and datagram channel.
 			quicChannel.close().sync();
 			channel.close().sync();
-		} finally {
+		}
+		finally {
 			group.shutdownGracefully();
 		}
+	}
+
+	private static void sendHttpRequest(QuicStreamChannel streamChannel) throws InterruptedException {
+		byte[] content = "Hey!".getBytes(StandardCharsets.UTF_8);
+		Http3HeadersFrame headersFrame = new DefaultHttp3HeadersFrame();
+		headersFrame.headers()
+				.method("POST")
+				.path("/")
+				.authority("test" + ":" + Http3Server.PORT)
+				.addInt("content-length", content.length)
+				.scheme("https");
+		streamChannel.write(headersFrame);
+		streamChannel.writeAndFlush(new DefaultHttp3DataFrame(Unpooled.copiedBuffer(content)))
+				.addListener(QuicStreamChannel.SHUTDOWN_OUTPUT)
+				.sync();
+	}
+
+	private static QuicStreamChannel createQuicStream(QuicChannel quicChannel) throws InterruptedException {
+		return Http3.newRequestStream(quicChannel,
+				new Http3RequestStreamInboundHandler() {
+					@Override
+					protected void channelRead(ChannelHandlerContext ctx, Http3HeadersFrame frame) {
+						System.out.println("HEADERS = " + frame.headers());
+						ReferenceCountUtil.release(frame);
+					}
+
+					@Override
+					protected void channelRead(ChannelHandlerContext ctx, Http3DataFrame frame) {
+						System.out.print("DATA = " + frame.content().toString(CharsetUtil.US_ASCII));
+						ReferenceCountUtil.release(frame);
+					}
+
+					@Override
+					protected void channelInputClosed(ChannelHandlerContext ctx) {
+						ctx.close();
+					}
+				}).sync().getNow();
+	}
+
+	private static QuicChannel createQuicChannel(Channel channel) throws InterruptedException, ExecutionException {
+		return QuicChannel.newBootstrap(channel)
+				.handler(new Http3ClientConnectionHandler())
+				.remoteAddress(new InetSocketAddress("localhost", Http3Server.PORT))
+				.connect()
+				.get();
+	}
+
+	private static Channel createHttp3Channel(NioEventLoopGroup group) throws InterruptedException {
+		return new Bootstrap().group(group)
+				.channel(NioDatagramChannel.class)
+				.handler(createHttp3ChannelHandler())
+				.bind(0)
+				.sync()
+				.channel();
+	}
+
+	private static ChannelHandler createHttp3ChannelHandler() {
+		return Http3.newQuicClientCodecBuilder()
+				.sslContext(QuicSslContextBuilder.forClient()
+						.trustManager(InsecureTrustManagerFactory.INSTANCE)
+						.applicationProtocols(Http3.supportedApplicationProtocols())
+						.build())
+				.maxIdleTimeout(5000, TimeUnit.MILLISECONDS)
+				.initialMaxData(10000000)
+				.initialMaxStreamDataBidirectionalLocal(1000000)
+				.build();
 	}
 
 }

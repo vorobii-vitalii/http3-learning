@@ -24,7 +24,7 @@ public class Http3Server {
 		File certChainFile = new File("cert.pem");
 		File keyFile = new File("key.pem");
 
-		var http3ServerChannelHandler = createHttp3ServerChannelHandler(keyFile, certChainFile);
+		ChannelHandler http3ServerChannelHandler = createHttp3ServerChannelHandler(keyFile, certChainFile);
 		try {
 			Bootstrap bs = new Bootstrap();
 			Channel channel = bs.group(group)
