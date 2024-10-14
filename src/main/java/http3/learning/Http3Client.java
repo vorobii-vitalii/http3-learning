@@ -30,7 +30,6 @@ public class Http3Client {
 
 	public static void main(String[] args) throws InterruptedException, ExecutionException {
 		NioEventLoopGroup group = new NioEventLoopGroup(1);
-
 		try {
 			Channel channel = createHttp3Channel(group);
 			QuicChannel quicChannel = createQuicChannel(channel);
