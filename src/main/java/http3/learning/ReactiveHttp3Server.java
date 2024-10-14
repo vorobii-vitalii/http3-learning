@@ -9,7 +9,7 @@ import reactor.netty.http.server.HttpServer;
 import java.io.File;
 import java.time.Duration;
 
-public class Main {
+public class ReactiveHttp3Server {
 
 	public static void main(String[] args) {
 		File certChainFile = new File("/home/vitalii/projects/http3-learning/cert.pem");

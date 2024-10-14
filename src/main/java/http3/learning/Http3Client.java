@@ -18,11 +18,9 @@ import io.netty.incubator.codec.http3.Http3DataFrame;
 import io.netty.incubator.codec.http3.Http3HeadersFrame;
 import io.netty.incubator.codec.http3.Http3RequestStreamInboundHandler;
 import io.netty.incubator.codec.quic.QuicChannel;
-import io.netty.incubator.codec.quic.QuicSslContext;
 import io.netty.incubator.codec.quic.QuicSslContextBuilder;
 import io.netty.incubator.codec.quic.QuicStreamChannel;
 import io.netty.util.CharsetUtil;
-import io.netty.util.NetUtil;
 import io.netty.util.ReferenceCountUtil;
 
 public class Http3Client {
@@ -31,18 +29,18 @@ public class Http3Client {
 		NioEventLoopGroup group = new NioEventLoopGroup(1);
 
 		try {
-			QuicSslContext context = QuicSslContextBuilder.forClient()
-					.trustManager(InsecureTrustManagerFactory.INSTANCE)
-					.applicationProtocols(Http3.supportedApplicationProtocols()).build();
 			ChannelHandler codec = Http3.newQuicClientCodecBuilder()
-					.sslContext(context)
+					.sslContext(QuicSslContextBuilder.forClient()
+							.trustManager(InsecureTrustManagerFactory.INSTANCE)
+							.applicationProtocols(Http3.supportedApplicationProtocols())
+							.build())
 					.maxIdleTimeout(5000, TimeUnit.MILLISECONDS)
 					.initialMaxData(10000000)
 					.initialMaxStreamDataBidirectionalLocal(1000000)
 					.build();
 
-			Bootstrap bs = new Bootstrap();
-			Channel channel = bs.group(group)
+			Bootstrap bootstrap = new Bootstrap();
+			Channel channel = bootstrap.group(group)
 					.channel(NioDatagramChannel.class)
 					.handler(codec)
 					.bind(0).sync().channel();
@@ -74,7 +72,7 @@ public class Http3Client {
 					}).sync().getNow();
 
 			// Write the Header frame and send the FIN to mark the end of the request.
-			// After this its not possible anymore to write any more data.
+			// After this it's not possible anymore to write any more data.
 			Http3HeadersFrame frame = new DefaultHttp3HeadersFrame();
 			frame.headers().method("GET").path("/")
 					.authority("localhost" + ":" + Http3Server.PORT)
