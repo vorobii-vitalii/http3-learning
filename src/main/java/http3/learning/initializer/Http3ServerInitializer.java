@@ -1,6 +1,7 @@
 package http3.learning.initializer;
 
 import http3.learning.handler.HttpRequestHandler;
+import http3.learning.handler.MergeHttpFramesInboundHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
@@ -22,6 +23,7 @@ public class Http3ServerInitializer extends ChannelInitializer<QuicChannel> {
 			@Override
 			protected void initChannel(QuicStreamChannel streamChannel) {
 				streamChannel.pipeline().addLast(new Http3FrameToHttpObjectCodec(true, false));
+				streamChannel.pipeline().addLast(new MergeHttpFramesInboundHandler());
 				streamChannel.pipeline().addLast(httpRequestHandler);
 				streamChannel.pipeline().remove(this);
 			}

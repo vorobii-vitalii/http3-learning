@@ -1,16 +1,19 @@
 package http3.learning;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.incubator.codec.http3.DefaultHttp3DataFrame;
 import io.netty.incubator.codec.http3.DefaultHttp3HeadersFrame;
 import io.netty.incubator.codec.http3.Http3;
 import io.netty.incubator.codec.http3.Http3ClientConnectionHandler;
@@ -61,7 +64,7 @@ public class Http3Client {
 
 						@Override
 						protected void channelRead(ChannelHandlerContext ctx, Http3DataFrame frame) {
-							System.err.print("DATA = " + frame.content().toString(CharsetUtil.US_ASCII));
+							System.out.print("DATA = " + frame.content().toString(CharsetUtil.US_ASCII));
 							ReferenceCountUtil.release(frame);
 						}
 
@@ -71,14 +74,26 @@ public class Http3Client {
 						}
 					}).sync().getNow();
 
+			byte[] content = "Hey!".getBytes(StandardCharsets.UTF_8);
+
 			// Write the Header frame and send the FIN to mark the end of the request.
 			// After this it's not possible anymore to write any more data.
-			Http3HeadersFrame frame = new DefaultHttp3HeadersFrame();
-			frame.headers().method("GET").path("/")
+			Http3HeadersFrame headersFrame = new DefaultHttp3HeadersFrame();
+			headersFrame.headers()
+					.method("GET")
+					.path("/")
 					.authority("localhost" + ":" + Http3Server.PORT)
-					.scheme("https");
-			streamChannel.writeAndFlush(frame)
-					.addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync();
+					.scheme("https")
+					.addInt("content-length", content.length);
+
+//			streamChannel.writeAndFlush(headersFrame)
+//					.addListener(QuicStreamChannel.SHUTDOWN_OUTPUT)
+//					.sync();
+
+			streamChannel.write(headersFrame);
+			streamChannel.writeAndFlush(new DefaultHttp3DataFrame(Unpooled.copiedBuffer(content)))
+					.addListener(QuicStreamChannel.SHUTDOWN_OUTPUT)
+					.sync();
 
 			// Wait for the stream channel and quic channel to be closed (this will happen after we received the FIN).
 			// After this is done we will close the underlying datagram channel.

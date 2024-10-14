@@ -20,14 +20,29 @@ public class Http3Server {
 	public static final int PORT = 9999;
 
 	public static void main(String[] args) throws InterruptedException {
-		NioEventLoopGroup group = new NioEventLoopGroup(1);
+		NioEventLoopGroup group = new NioEventLoopGroup();
 		File certChainFile = new File("cert.pem");
 		File keyFile = new File("key.pem");
 
-		QuicSslContext sslContext = QuicSslContextBuilder.forServer(keyFile, null, certChainFile)
-				.applicationProtocols(Http3.supportedApplicationProtocols()).build();
-		ChannelHandler codec = Http3.newQuicServerCodecBuilder()
-				.sslContext(sslContext)
+		var http3ServerChannelHandler = createHttp3ServerChannelHandler(keyFile, certChainFile);
+		try {
+			Bootstrap bs = new Bootstrap();
+			Channel channel = bs.group(group)
+					.channel(NioDatagramChannel.class)
+					.handler(http3ServerChannelHandler)
+					.bind(new InetSocketAddress(PORT)).sync().channel();
+			channel.closeFuture().sync();
+		}
+		finally {
+			group.shutdownGracefully();
+		}
+	}
+
+	private static ChannelHandler createHttp3ServerChannelHandler(File keyFile, File certChainFile) {
+		return Http3.newQuicServerCodecBuilder()
+				.sslContext(QuicSslContextBuilder.forServer(keyFile, null, certChainFile)
+						.applicationProtocols(Http3.supportedApplicationProtocols())
+						.build())
 				.maxIdleTimeout(5000, TimeUnit.MILLISECONDS)
 				.initialMaxData(10000000)
 				.initialMaxStreamDataBidirectionalLocal(1000000)
@@ -36,17 +51,6 @@ public class Http3Server {
 				.tokenHandler(InsecureQuicTokenHandler.INSTANCE)
 				.handler(new Http3ServerInitializer(new HttpRequestHandler()))
 				.build();
-		try {
-			Bootstrap bs = new Bootstrap();
-			Channel channel = bs.group(group)
-					.channel(NioDatagramChannel.class)
-					.handler(codec)
-					.bind(new InetSocketAddress(PORT)).sync().channel();
-			channel.closeFuture().sync();
-		}
-		finally {
-			group.shutdownGracefully();
-		}
 	}
 
 }
